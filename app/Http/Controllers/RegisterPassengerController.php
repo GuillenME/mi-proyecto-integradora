@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -24,7 +24,8 @@ public function register(Request $request)
     'ine_imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     'correo' => 'required|email|unique:passenger,correo',
     'telefono' => 'nullable|string|max:45',
-    'contrasena' => 'required|min:6|confirmed',
+    'contrasena' => 'required|min:6',
+    'contrasena_confirmation' => 'required|same:contrasena',
     'genero_id_genero' => 'required|integer|exists:gender,id_genero',
     'idioma_id_idioma' => 'required|integer|exists:lenguage,id_idioma',
     'discapacidad' => 'nullable|string|max:45',
@@ -107,8 +108,8 @@ public function register(Request $request)
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
-            'password' => 'required|string',
+            'correo' => 'required|string|email',
+            'contrasena' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -117,28 +118,28 @@ public function register(Request $request)
 
         DB::beginTransaction();
         try {
-            $credentials = $request->only('email', 'password');
+            // Buscar el passenger por correo
+            $passenger = Passenger::where('correo', $request->correo)->first();
 
-            if (!Auth::attempt($credentials)) {
-                return response()->json(['error' => 'No autorizado'], 406);
+            if (!$passenger || !password_verify($request->contrasena, $passenger->contrasena)) {
+                return response()->json(['error' => 'Credenciales incorrectas'], 401);
             }
 
-            $user = Auth::user();
-
-            if ($user->status != 'ACTIVE') {
-                return response()->json(['error' => 'Usuario inactivo'], 403);
-            }
-
-            $tokens = $user->tokens;
-            foreach ($tokens as $token) $token->revoke();
-            $tokenResource = $this->generateToken($user);
+            // Simular token para passenger
+            $tokenResource = [
+                'access_token' => 'simulated-token-' . $passenger->id_usuario,
+                'token_type' => 'Bearer',
+                'expires_at' => Carbon::now()->addMinutes(15)->toDateTimeString(),
+                'token_id' => null,
+                'name' => $passenger->nombre,
+                'email' => $passenger->correo,
+            ];
 
             DB::commit();
 
             return response()->json([
                 'success' => $tokenResource,
-
-
+                'user' => $passenger
             ], 200);
 
         } catch (\Throwable $th) {
@@ -167,14 +168,8 @@ public function register(Request $request)
 
     public function logout(Request $request)
     {
-        if (Auth::check()) {
-            $user = Auth::user();
-            $tokens = $user->tokens;
-            foreach ($tokens as $token) $token->revoke();
-            return response()->json(['message' => 'Sesión cerrada correctamente.'], 200);
-        }
-
-        return response()->json(['message' => 'Usuario no autenticado.'], 401);
+        // Para passenger, simplemente retornamos éxito ya que no usamos tokens reales
+        return response()->json(['message' => 'Sesión cerrada correctamente.'], 200);
     }
 
     public function index()

@@ -18,6 +18,7 @@ class Passenger extends Model
         'apellidos',
         'ine',
         'foto',
+        'ine_imagen',
         'correo',
         'telefono',
         'contrasena',
