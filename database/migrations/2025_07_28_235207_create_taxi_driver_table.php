@@ -6,12 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('taxi-driver', function (Blueprint $table) {
+        Schema::create('taxi_driver', function (Blueprint $table) {
             $table->integer('id_taxista')->primary();
             $table->string('nombre', 100)->nullable();
             $table->integer('edad')->nullable();
@@ -20,21 +17,22 @@ return new class extends Migration
             $table->string('lincencia', 45)->nullable();
             $table->string('telefono', 45)->nullable();
             $table->string('contrasena', 45)->nullable();
-            $table->integer('idioma_id_idioma');
+
+            // 🔧 Clave foránea corregida
+            $table->unsignedBigInteger('idioma_id_idioma');
+            $table->foreign('idioma_id_idioma')->references('id_idioma')->on('lenguage');
+
             $table->string('foto_conductor', 45)->nullable();
             $table->string('foto_taxi', 45)->nullable();
             $table->integer('numero_cuenta')->nullable();
 
-            // Foreign key
-            $table->foreign('idioma_id_idioma')->references('id_idioma')->on('lenguage');
+            // Índice único compuesto para permitir clave foránea compuesta
+            $table->unique(['id_taxista', 'idioma_id_idioma'], 'unique_taxi_driver_composite');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('taxi-driver');
+        Schema::dropIfExists('taxi_driver');
     }
 };
